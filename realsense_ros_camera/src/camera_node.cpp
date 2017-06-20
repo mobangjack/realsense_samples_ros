@@ -58,6 +58,7 @@ public:
     encoding_[rs::stream::fisheye] = sensor_msgs::image_encodings::TYPE_8UC1; // ROS message type
     unit_step_size_[rs::stream::fisheye] = sizeof(unsigned char); // sensor_msgs::ImagePtr row step size
     stream_name_[rs::stream::fisheye] = "fisheye";
+
   }
 
   virtual ~NodeletCamera()
@@ -77,6 +78,9 @@ public:
 private:
   virtual void onInit()
   {
+    // Initialization IMU msg
+    imu_msg = sensor_msgs::Imu();
+
     getParameters();
 
     if (false == setupDevice())
@@ -321,7 +325,8 @@ private:
         
         // If there is nobody subscribed to the stream, do no further
         // processing
-        if( 0 == imu_publishers_[motionType].getNumSubscribers())
+        if( 0 == imu_publishers_[RS_EVENT_IMU_GYRO].getNumSubscribers() && 
+            0 == imu_publishers_[RS_EVENT_IMU_ACCEL].getNumSubscribers())
           return;
 
         if(false == intialize_time_base_)
@@ -329,7 +334,6 @@ private:
         double elapsed_camera_ms = (/*ms*/ entry.timestamp_data.timestamp - /*ms*/ camera_time_base_) / /*ms to seconds*/ 1000;
         ros::Time t(ros_time_base_.toSec() + elapsed_camera_ms);
 
-        sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
         imu_msg.header.frame_id = optical_imu_id_[motionType];
         imu_msg.orientation.x = 0.0;
         imu_msg.orientation.y = 0.0;
@@ -727,6 +731,8 @@ private:
   ros::Publisher imu_publishers_[2];
   int seq_motion[2];
   std::string optical_imu_id_[2];
+
+  sensor_msgs::Imu imu_msg;
 };//end class
 
 PLUGINLIB_DECLARE_CLASS(realsense_ros_camera, NodeletCamera, realsense_ros_camera::NodeletCamera, nodelet::Nodelet);
